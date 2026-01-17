@@ -3,10 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>奖励兑换中心</title>
+    <title>XP 兑换中心</title>
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="奖励兑换">
+    <!-- 图标占位符，将由 JS 动态填充 -->
+    <link rel="icon" id="favicon">
+    <link rel="apple-touch-icon" id="apple-touch-icon">
     <style>
         :root {
             --bg-color: #f2f2f7;
@@ -55,12 +58,38 @@
         header {
             margin-bottom: 30px;
             padding: 0 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .header-content {
+            display: flex;
+            flex-direction: column;
         }
 
         h1 {
             font-size: 28px;
             font-weight: 700;
             margin: 0;
+        }
+
+        .clear-btn {
+            background: rgba(142, 142, 147, 0.12);
+            color: var(--accent);
+            border: none;
+            font-size: 14px;
+            font-weight: 600;
+            padding: 6px 14px;
+            border-radius: 20px;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            transition: all 0.2s;
+        }
+
+        .clear-btn:active {
+            opacity: 0.6;
+            transform: scale(0.95);
         }
 
         .rate-info {
@@ -149,8 +178,11 @@
 <body>
     <div class="container">
         <header>
-            <h1>奖励兑换中心</h1>
-            <div class="rate-info">10 SGD = 30 分钟 = 450 XP</div>
+            <div class="header-content">
+                <h1>XP 兑换中心</h1>
+                <div class="rate-info">150 XP = 10 分钟 = 3.33 SGD</div>
+            </div>
+            <button class="clear-btn" onclick="clearAll()">清空</button>
         </header>
 
         <div class="card-list">
@@ -158,7 +190,7 @@
             <div class="card">
                 <div class="label" style="color: var(--accent);">XP 点数</div>
                 <div class="input-group">
-                    <input type="number" id="xp" inputmode="decimal" placeholder="0">
+                    <input type="number" id="xp" inputmode="decimal" placeholder="0" min="0">
                     <span class="unit">XP</span>
                 </div>
             </div>
@@ -167,7 +199,7 @@
             <div class="card">
                 <div class="label">零用钱</div>
                 <div class="input-group">
-                    <input type="number" id="sgd" inputmode="decimal" placeholder="0.00">
+                    <input type="number" id="sgd" inputmode="decimal" placeholder="0.00" min="0">
                     <span class="unit">SGD</span>
                 </div>
             </div>
@@ -176,7 +208,7 @@
             <div class="card">
                 <div class="label">游戏时间</div>
                 <div class="input-group">
-                    <input type="number" id="min" inputmode="decimal" placeholder="0">
+                    <input type="number" id="min" inputmode="decimal" placeholder="0" min="0">
                     <span class="unit">min</span>
                 </div>
                 <div id="time-text" class="time-text"></div>
@@ -267,17 +299,73 @@
             return parseFloat(num.toFixed(fixed)).toString();
         }
 
-        // 监听输入事件
-        xpInput.addEventListener('input', (e) => updateFromXP(e.target.value));
-        minInput.addEventListener('input', (e) => updateFromMin(e.target.value));
-        sgdInput.addEventListener('input', (e) => updateFromSGD(e.target.value));
-
-        // 优化体验：点击输入框时全选内容
+        // 绑定输入事件监听
         [xpInput, minInput, sgdInput].forEach(input => {
+            // 实时计算
+            input.addEventListener('input', (e) => {
+                if (input === xpInput) updateFromXP(e.target.value);
+                else if (input === minInput) updateFromMin(e.target.value);
+                else if (input === sgdInput) updateFromSGD(e.target.value);
+            });
+
+            // 聚焦时全选
             input.addEventListener('focus', (e) => {
                 setTimeout(() => e.target.select(), 10);
             });
+
+            // 阻止非法字符输入 (负号, e)
+            input.addEventListener('keydown', (e) => {
+                const invalidKeys = ['-', '+', 'e', 'E'];
+                if (invalidKeys.includes(e.key)) {
+                    e.preventDefault();
+                }
+            });
         });
+
+        // 动态生成图标 (Canvas 绘制)
+        function generateIcons() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+
+            // 1. 绘制背景 (Duolingo Green)
+            ctx.fillStyle = '#58cc02';
+            ctx.fillRect(0, 0, 512, 512);
+
+            // 2. 绘制星星 (白色)
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            // 简单的五角星路径
+            const cx = 256, cy = 256, spikes = 5, outerRadius = 150, innerRadius = 70;
+            let rot = Math.PI / 2 * 3;
+            let x = cx, y = cy;
+            const step = Math.PI / spikes;
+
+            ctx.moveTo(cx, cy - outerRadius);
+            for (let i = 0; i < spikes; i++) {
+                x = cx + Math.cos(rot) * outerRadius;
+                y = cy + Math.sin(rot) * outerRadius;
+                ctx.lineTo(x, y);
+                rot += step;
+
+                x = cx + Math.cos(rot) * innerRadius;
+                y = cy + Math.sin(rot) * innerRadius;
+                ctx.lineTo(x, y);
+                rot += step;
+            }
+            ctx.lineTo(cx, cy - outerRadius);
+            ctx.closePath();
+            ctx.fill();
+
+            // 导出为 PNG
+            const dataUrl = canvas.toDataURL('image/png');
+            document.getElementById('favicon').href = dataUrl;
+            document.getElementById('apple-touch-icon').href = dataUrl;
+        }
+
+        // 初始化图标
+        generateIcons();
     </script>
 </body>
 </html>

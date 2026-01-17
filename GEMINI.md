@@ -1,4 +1,4 @@
-# Project Context: XP Reward Converter
+# Project Context: XP Reward Center (XP 兑换中心)
 
 ## Project Overview
 This project is a single-file Progressive Web App (PWA) designed to help a parent and child calculate exchange rates between **Duolingo XP**, **Pocket Money (SGD)**, and **Video Game Time**.
@@ -13,15 +13,17 @@ It is built as a standalone HTML file containing all necessary CSS and JavaScrip
 ## Key Files
 *   **`index.html`**: The complete application source code.
     *   **Logic**: Contains the conversion rates (`XP_PER_MIN = 15`, `MIN_PER_SGD = 3`) and event listeners for the three input fields.
-    *   **UI**: Three cards for XP, Money, and Time, with specific input types for mobile keyboards.
+    *   **UI**: Three cards for XP, Money, and Time, with specific input types for mobile keyboards. Canvas-based dynamic icon generation.
 
 ## Conversion Logic
 The application uses **Minutes** as the base unit for calculation:
-*   **1 Minute = 15 XP**
-*   **1 SGD = 3 Minutes** (implicitly 45 XP)
+*   **150 XP = 10 Minutes** (Base Rate: 1 Min = 15 XP)
+*   **10 Minutes = 3.33 SGD** (Base Rate: 1 SGD = 3 Min)
 
 ## Features
 *   **Instant Calculation**: Updating any field immediately updates the other two.
+*   **Input Protection**: Automatically blocks negative numbers and invalid characters ('e', '-', '+').
+*   **Clear Button**: A dedicated button in the header to instantly reset all fields.
 *   **Smart Formatting**:
     *   Time is displayed in minutes in the input field.
     *   An additional text display converts minutes to "Hours + Minutes" format (e.g., "1 小时 7 分钟").
