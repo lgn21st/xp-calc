@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>奖励兑换中心</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="奖励兑换">
+    <style>
+        :root {
+            --bg-color: #f2f2f7;
+            --card-bg: #ffffff;
+            --text-primary: #000000;
+            --text-secondary: #8e8e93;
+            --accent: #58cc02; /* Duolingo Green */
+            --border: #e5e5ea;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #000000;
+                --card-bg: #1c1c1e;
+                --text-primary: #ffffff;
+                --text-secondary: #8e8e93;
+                --accent: #58cc02;
+                --border: #38383a;
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            padding-top: calc(constant(safe-area-inset-top) + 20px);
+            padding-top: calc(env(safe-area-inset-top) + 20px);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 400px;
+        }
+
+        header {
+            margin-bottom: 30px;
+            padding: 0 10px;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .rate-info {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-top: 5px;
+        }
+
+        .card-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .input-group {
+            display: flex;
+            align-items: baseline;
+        }
+
+        input {
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            font-size: 32px;
+            font-weight: 600;
+            width: 100%;
+            padding: 0;
+            outline: none;
+            font-family: inherit;
+        }
+
+        .unit {
+            font-size: 20px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-left: 8px;
+        }
+
+        /* 隐藏 Chrome/Safari 的数字输入框箭头 */
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .footer {
+            margin-top: auto;
+            padding: 40px 20px 20px;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+
+        /* 按钮反馈 */
+        .card:active {
+            opacity: 0.7;
+            transform: scale(0.98);
+            transition: all 0.1s;
+        }
+
+        .time-text {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--accent);
+            margin-top: 8px;
+            min-height: 20px; /* 防止内容变化时高度跳动 */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>奖励兑换中心</h1>
+            <div class="rate-info">10 SGD = 30 分钟 = 450 XP</div>
+        </header>
+
+        <div class="card-list">
+            <!-- XP 卡片 -->
+            <div class="card">
+                <div class="label" style="color: var(--accent);">XP 点数</div>
+                <div class="input-group">
+                    <input type="number" id="xp" inputmode="decimal" placeholder="0">
+                    <span class="unit">XP</span>
+                </div>
+            </div>
+
+            <!-- SGD 卡片 -->
+            <div class="card">
+                <div class="label">零用钱</div>
+                <div class="input-group">
+                    <input type="number" id="sgd" inputmode="decimal" placeholder="0.00">
+                    <span class="unit">SGD</span>
+                </div>
+            </div>
+
+            <!-- 时间卡片 -->
+            <div class="card">
+                <div class="label">游戏时间</div>
+                <div class="input-group">
+                    <input type="number" id="min" inputmode="decimal" placeholder="0">
+                    <span class="unit">min</span>
+                </div>
+                <div id="time-text" class="time-text"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        加油！每一分努力都有回报 🦉
+    </div>
+
+    <script>
+        const xpInput = document.getElementById('xp');
+        const minInput = document.getElementById('min');
+        const sgdInput = document.getElementById('sgd');
+        const timeText = document.getElementById('time-text');
+
+        // 比率常量
+        // 300 XP = 20 min => 1 min = 15 XP
+        // 10 SGD = 30 min => 1 min = 1/3 SGD
+        const XP_PER_MIN = 15;
+        const MIN_PER_SGD = 3;
+
+        function updateFromXP(val) {
+            if (val === '') { clearAll(); return; }
+            const xp = parseFloat(val);
+            const mins = xp / XP_PER_MIN;
+            const sgd = mins / MIN_PER_SGD;
+            
+            minInput.value = formatNum(mins);
+            sgdInput.value = formatNum(sgd, 2);
+            updateTimeText(mins);
+        }
+
+        function updateFromMin(val) {
+            if (val === '') { clearAll(); return; }
+            const mins = parseFloat(val);
+            const xp = mins * XP_PER_MIN;
+            const sgd = mins / MIN_PER_SGD;
+
+            xpInput.value = formatNum(xp);
+            sgdInput.value = formatNum(sgd, 2);
+            updateTimeText(mins);
+        }
+
+        function updateFromSGD(val) {
+            if (val === '') { clearAll(); return; }
+            const sgd = parseFloat(val);
+            const mins = sgd * MIN_PER_SGD;
+            const xp = mins * XP_PER_MIN;
+
+            minInput.value = formatNum(mins);
+            xpInput.value = formatNum(xp);
+            updateTimeText(mins);
+        }
+
+        function clearAll() {
+            xpInput.value = '';
+            minInput.value = '';
+            sgdInput.value = '';
+            timeText.textContent = '';
+        }
+
+        function updateTimeText(mins) {
+            const totalMins = Math.round(mins);
+            if (totalMins <= 0) {
+                timeText.textContent = '';
+                return;
+            }
+            
+            const h = Math.floor(totalMins / 60);
+            const m = totalMins % 60;
+            
+            let text = '';
+            if (h > 0) {
+                text += `${h} 小时 `;
+            }
+            if (m > 0 || h === 0) {
+                text += `${m} 分钟`;
+            }
+            timeText.textContent = '⏱ ' + text;
+        }
+
+        function formatNum(num, fixed = 1) {
+            // 如果是整数，不显示小数点
+            if (Number.isInteger(num)) return num.toString();
+            // 否则保留指定位数
+            return parseFloat(num.toFixed(fixed)).toString();
+        }
+
+        // 监听输入事件
+        xpInput.addEventListener('input', (e) => updateFromXP(e.target.value));
+        minInput.addEventListener('input', (e) => updateFromMin(e.target.value));
+        sgdInput.addEventListener('input', (e) => updateFromSGD(e.target.value));
+
+        // 优化体验：点击输入框时全选内容
+        [xpInput, minInput, sgdInput].forEach(input => {
+            input.addEventListener('focus', (e) => {
+                setTimeout(() => e.target.select(), 10);
+            });
+        });
+    </script>
+</body>
+</html>
