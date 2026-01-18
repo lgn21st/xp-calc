@@ -5,8 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>XP 兑换中心</title>
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="奖励兑换">
+    <link rel="manifest" href="manifest.json">
     <!-- 图标占位符，将由 JS 动态填充 -->
     <link rel="icon" id="favicon">
     <link rel="apple-touch-icon" id="apple-touch-icon">
@@ -180,7 +182,7 @@
         <header>
             <div class="header-content">
                 <h1>XP 兑换中心</h1>
-                <div class="rate-info">150 XP = 10 分钟 = 3.33 SGD</div>
+            <div class="rate-info" id="rate-info">150 XP = 10 分钟 = 3.33 SGD</div>
             </div>
             <button class="clear-btn" onclick="clearAll()">清空</button>
         </header>
@@ -188,7 +190,7 @@
         <div class="card-list">
             <!-- XP 卡片 -->
             <div class="card">
-                <div class="label" style="color: var(--accent);">XP 点数</div>
+                <label class="label" for="xp" style="color: var(--accent);">XP 点数</label>
                 <div class="input-group">
                     <input type="number" id="xp" inputmode="decimal" placeholder="0" min="0">
                     <span class="unit">XP</span>
@@ -197,7 +199,7 @@
 
             <!-- SGD 卡片 -->
             <div class="card">
-                <div class="label">零用钱</div>
+                <label class="label" for="sgd">零用钱</label>
                 <div class="input-group">
                     <input type="number" id="sgd" inputmode="decimal" placeholder="0.00" min="0">
                     <span class="unit">SGD</span>
@@ -206,7 +208,7 @@
 
             <!-- 时间卡片 -->
             <div class="card">
-                <div class="label">游戏时间</div>
+                <label class="label" for="min">游戏时间</label>
                 <div class="input-group">
                     <input type="number" id="min" inputmode="decimal" placeholder="0" min="0">
                     <span class="unit">min</span>
@@ -225,44 +227,65 @@
         const minInput = document.getElementById('min');
         const sgdInput = document.getElementById('sgd');
         const timeText = document.getElementById('time-text');
+        const rateInfo = document.getElementById('rate-info');
 
         // 比率常量
-        // 300 XP = 20 min => 1 min = 15 XP
-        // 10 SGD = 30 min => 1 min = 1/3 SGD
+        // 150 XP = 10 min => 1 min = 15 XP
+        // 10 min = 3.33 SGD => 1 min = 1/3 SGD
         const XP_PER_MIN = 15;
         const MIN_PER_SGD = 3;
 
         function updateFromXP(val) {
             if (val === '') { clearAll(); return; }
-            const xp = parseFloat(val);
+            const xp = parseInput(val);
+            if (xp === null) { clearDependents('xp'); return; }
             const mins = xp / XP_PER_MIN;
             const sgd = mins / MIN_PER_SGD;
-            
-            minInput.value = formatNum(mins);
+
+            const displayMins = formatNum(mins);
+            minInput.value = displayMins;
             sgdInput.value = formatNum(sgd, 2);
-            updateTimeText(mins);
+            updateTimeText(Number(displayMins));
         }
 
         function updateFromMin(val) {
             if (val === '') { clearAll(); return; }
-            const mins = parseFloat(val);
+            const mins = parseInput(val);
+            if (mins === null) { clearDependents('min'); return; }
             const xp = mins * XP_PER_MIN;
             const sgd = mins / MIN_PER_SGD;
 
+            const displayMins = formatNum(mins);
             xpInput.value = formatNum(xp);
             sgdInput.value = formatNum(sgd, 2);
-            updateTimeText(mins);
+            updateTimeText(Number(displayMins));
         }
 
         function updateFromSGD(val) {
             if (val === '') { clearAll(); return; }
-            const sgd = parseFloat(val);
+            const sgd = parseInput(val);
+            if (sgd === null) { clearDependents('sgd'); return; }
             const mins = sgd * MIN_PER_SGD;
             const xp = mins * XP_PER_MIN;
 
-            minInput.value = formatNum(mins);
+            const displayMins = formatNum(mins);
+            minInput.value = displayMins;
             xpInput.value = formatNum(xp);
-            updateTimeText(mins);
+            updateTimeText(Number(displayMins));
+        }
+
+        function parseInput(val) {
+            const trimmed = val.trim();
+            if (trimmed === '') return null;
+            const num = parseFloat(trimmed);
+            return Number.isFinite(num) ? num : null;
+        }
+
+        function clearDependents(source) {
+            if (source !== 'xp') xpInput.value = '';
+            if (source !== 'min') minInput.value = '';
+            if (source !== 'sgd') sgdInput.value = '';
+            timeText.textContent = '';
         }
 
         function clearAll() {
@@ -273,6 +296,10 @@
         }
 
         function updateTimeText(mins) {
+            if (!Number.isFinite(mins)) {
+                timeText.textContent = '';
+                return;
+            }
             const totalMins = Math.round(mins);
             if (totalMins <= 0) {
                 timeText.textContent = '';
@@ -297,6 +324,13 @@
             if (Number.isInteger(num)) return num.toString();
             // 否则保留指定位数
             return parseFloat(num.toFixed(fixed)).toString();
+        }
+
+        function updateRateInfo() {
+            const baseMins = 10;
+            const xp = XP_PER_MIN * baseMins;
+            const sgd = baseMins / MIN_PER_SGD;
+            rateInfo.textContent = `${formatNum(xp)} XP = ${baseMins} 分钟 = ${formatNum(sgd, 2)} SGD`;
         }
 
         // 绑定输入事件监听
@@ -366,6 +400,13 @@
 
         // 初始化图标
         generateIcons();
+        updateRateInfo();
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js');
+            });
+        }
     </script>
 </body>
 </html>
